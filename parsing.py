@@ -2,7 +2,7 @@ import importlib
 from endprog import runtime_error
 from endprog import read_error
 from includes.objects import obj
-Func_List = {}
+from config import call_func, has_func, add_func
 import_list = set()
 def library_import(package, rename):
     module = 0
@@ -18,11 +18,11 @@ def library_import(package, rename):
             new_name = rename + "." + key
         else:
             new_name = key
-        if new_name in Func_List:
+        if has_func(new_name):
             runtime_error("Redefining " + new_name + ".")
-        Func_List[new_name] = val
+        add_func(new_name, val)
     import_list.add(rename)
-
+'''
 def define_struct(struct_name, *args, **kwargs):
     arg = list(args)
     print(arg)
@@ -35,15 +35,23 @@ def define_struct(struct_name, *args, **kwargs):
     Func_List["make-" + struct_name] = lambda *args, **kwargs: New_class(*args, **kwargs)
     is_struct = Func_List[struct_name + "?"] = lambda x: type(x) is New_class
     for x in arg:
-        def wrapper():
+        def getat():
             att = x
             def getatt(y):
                 if not is_struct(y):
                     runtime_error("Object " + y.__str__() + " is not type " + struct_name + ".")
                 return getattr(y, att)
             return getatt
-        Func_List[struct_name + "-" + x] = wrapper()
-
+        Func_List[struct_name + "-" + x] = getat()
+        def setat():
+            att = x
+            def setatt(y, val):
+                if not is_struct(y):
+                    runtime_error("Object " + y.__str__() + " is not type " + struct_name + ".")
+                setattr(y, att, val)
+            return setatt
+        Func_List["set-" + struct_name + "-" + x + "!"] = setat()
+'''
 
 
 def parsing(code):
@@ -51,15 +59,11 @@ def parsing(code):
 
 if __name__ == "__main__":
     library_import("includes.library", "")
-    print(Func_List["list"](12, 23))
-    define_struct("Hello", "a", "b", "c", d = 45)
-    x = Func_List["make-Hello"](12, 23, 34)
-    print(getattr(x, "a"))
-    print(Func_List["Hello-a"](x))
-    print(getattr(x, "b"))
-    print(Func_List["Hello-b"](x))
-    print(getattr(x, "c"))
-    print(Func_List["Hello-c"](x))
-    print(getattr(x, "d"))
-    print(Func_List["Hello-d"](x))
-    Func_List["display"](x)
+    print(call_func("list", 12, 23))
+    call_func("define-struct", "Hello", "a", "b", "c", d = 45)
+    x = call_func("make-Hello", 12, 23, 34)
+    print(call_func("Hello-a", x))
+    call_func("display", x)
+    call_func("set-Hello-a!", x, "Hello!")
+    call_func("display", x)
+
